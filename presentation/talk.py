@@ -49,9 +49,9 @@ def title(slide):
     )
     content.box(width="fill").text(
         "abusing mdspan is within arms reach", elsie.TextStyle(size=72, bold=True, italic=True))
-    content.box(width="fill", p_top=10).text("October 4, 2023")
+    content.box(width="fill", p_top=10).text("October 5, 2023")
     content.box(width="fill", p_top=180).text("Griswald Brooks")
-    content.box(width="fill").text("Senior Software Engineer\ngriswald.brooks@picknik.ai")
+    content.box(width="fill").text("Senior Robotics Engineer\ngriswald.brooks@picknik.ai")
 
 @slides.slide(debug_boxes=False)
 def normal_usage(slide):
@@ -70,9 +70,9 @@ for (std::size_t i = 0; i != occupancy_map.extent(0); i++) {
         occupancy_map[i, j] = get_occupancy_from_laser_scan(...)
     }
 }
-// TODO: Add turtlebot map with attribution
 """,
     )
+    slide.overlay().box(x=1200, y=570).image("images/turtlebot3_world.jpg", scale=1.0)
     slide.set_style("footer", elsie.TextStyle(color="black", size=32, align="right"))
     footer = slide.box(width="fill", height="5%", horizontal=True)
     f1 = footer.box(width="fill", height="fill")
@@ -102,7 +102,7 @@ class mdspan;
 
 
 @slides.slide(debug_boxes=False)
-def bin_accessor(slide):
+def bin_checker(slide):
     code_slide(
         slide,
         "Bin Accessor Policy",
@@ -133,30 +133,83 @@ struct bin_checker {
     f1 = footer.box(width="fill", height="fill")
     f1.text("github.com/griswaldbrooks/spanny", "footer")
 
-
 @slides.slide(debug_boxes=False)
-def sync_implementation(slide):
+def async_bin_checker(slide):
     code_slide(
         slide,
-        "Getting Started",
+        "Bin Accessor Policy",
         "C++",
         """
-using ext_t = stdex::extents<uint32_t, 2, 3>;
-using acc_t = bin_checker<6>;
-using bin_view = stdex::mdspan<bin_state, ext_t, stdex::layout_right, acc_t>;
+struct bin_checker {
+  using element_type = bin_state;
+  using reference = std::future<bin_state>;
+  using data_handle_type = robot_arm*;
 
-int main(int, char **) {
-  auto arm = robot_arm{"/dev/ttyACM0", 9600};
-  auto bins = bin_view(&arm, {}, bin_checker<6>{});
-  while(true) {
-    for (std::size_t i = 0; i != bins.extent(0); ++i) {
-      for (std::size_t j = 0; j != bins.extent(1); ++j) {
-        std::cout << "Bin " << i << ", " << j << " is ";
-        bins(i, j).and_then(print_state).or_else(shrug);
-        std::cout << "\\n";
-      }
+  reference access(data_handle_type ptr, std::ptrdiff_t offset) const {
+    return std::async([=]{
+      return bin_state{ptr->is_bin_occupied(static_cast<int>(offset)),
+                       offset_to_coord(static_cast<int>(offset))};
+    });
+  }
+};
+""",
+    )
+    slide.set_style("footer", elsie.TextStyle(color="black", size=32, align="right"))
+    footer = slide.box(width="fill", height="5%", horizontal=True)
+    f1 = footer.box(width="fill", height="fill")
+    f1.text("github.com/griswaldbrooks/spanny", "footer")
+
+@slides.slide(debug_boxes=False)
+def bounds_checker(slide):
+    code_slide(
+        slide,
+        "Bin Accessor Policy",
+        "C++",
+        """
+struct bounds_checked_layout_policy {
+  template <class Extents>
+  struct mapping : stdex::layout_right::mapping<Extents> {
+    using base_t = stdex::layout_right::mapping<Extents>;
+    using base_t::base_t;
+    std::ptrdiff_t operator()(auto... idxs) const {
+      [&]<size_t... Is>(std::index_sequence<Is...>) {
+        if (((idxs < 0 || idxs > this->extents().extent(Is)) || ...)) {
+          throw std::out_of_range("Invalid bin index");
+        }
+      }(std::make_index_sequence<sizeof...(idxs)>{});
+      return this->base_t::operator()(idxs...);
     }
-    std::cout << "====================\\n";
+  };
+};
+""",
+    )
+    slide.set_style("footer", elsie.TextStyle(color="black", size=32, align="right"))
+    footer = slide.box(width="fill", height="5%", horizontal=True)
+    f1 = footer.box(width="fill", height="fill")
+    f1.text("github.com/griswaldbrooks/spanny", "footer")
+
+
+@slides.slide(debug_boxes=False)
+def async_implementation(slide):
+    code_slide(
+        slide,
+        "Async Beer View",
+        "C++",
+        """
+int main() {
+  auto arm = robot_arm{"/dev/ttyACM0", 9600};
+  auto bins = bin_view(&arm);
+  while(true) {
+    std::vector<std::future<bin_state>> futures;
+    for (auto i = 0u; i < bins.extent(0); ++i) 
+      for (auto j = 0u; j < bins.extent(1); ++j) 
+          futures.push_back(bins(i, j));
+    
+    for (auto const& future : futures) future.wait();
+    
+    for (auto& future : futures) print_state(future.get());
+    
+    std::cout << "====================" << std::endl;
   }
   return 0;
 }
@@ -184,7 +237,11 @@ def demo_time(slide):
 def thank_you(slide):
     content = logo_header_slide(slide, "")
     content.fbox().text(
-        "Thank you!\n~link{github.com/griswaldbrooks/spanny}\n",
+        "Thank you!\n",
+        elsie.TextStyle(align="middle", size=80, bold=True),
+    )
+    content.fbox().text(
+        "Special Thanks to\nDaisy Hollman and Tyler Weaver\n~link{github.com/griswaldbrooks/spanny}\n",
         elsie.TextStyle(align="middle"),
     )
     content.sbox(p_bottom=20).text(
