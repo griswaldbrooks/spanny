@@ -11,7 +11,6 @@ slides.set_style("link", elsie.TextStyle(color="blue"))
 
 
 def logo_header_slide(parent: Box, title: str):
-    # parent.box(x=1570, y=40).image("picknik_logo.png")
     parent.sbox(name="header", x=0, height=140).fbox(p_left=20).text(
         title, elsie.TextStyle(bold=True)
     )
@@ -37,9 +36,17 @@ def code_slide(parent: Box, title: str, language: str, code: str):
     code_bg = "#F6F8FA"
     box = content.box(y=0, width="100%", height="100%", p_bottom=20)
     box.rect(bg_color=code_bg, rx=20, ry=20)
-    box.overlay().box(x=0, y=0, p_left=20, p_right=20, p_top=20, p_bottom=20).code(
-        language, code
+    return box.overlay().box(x=0, y=0, p_left=20, p_right=20, p_top=20, p_bottom=20).code(
+        language, code, use_styles=True
     )
+
+def add_footer(parent: Box):
+    footer = parent.box(width="fill", height="5%", horizontal=True)
+    conference = footer.box(width="fill", height="fill")
+    conference.text(" ROSCon 2023", elsie.TextStyle(color="grey", size=32, align="left"))
+    author_repo = footer.box(width="fill", height="fill")
+    author_repo.text("Griswald Brooks   |   github.com/griswaldbrooks/spanny  ", elsie.TextStyle(color="black", size=32, align="right"))
+
 
 @slides.slide(debug_boxes=False)
 def normal_usage(slide):
@@ -61,10 +68,7 @@ for (std::size_t i = 0; i != occupancy_map.extent(0); i++) {
 """,
     )
     slide.overlay().box(x=1200, y=570).image("images/turtlebot3_world.jpg", scale=1.0)
-    slide.set_style("footer", elsie.TextStyle(color="black", size=32, align="right"))
-    footer = slide.box(width="fill", height="5%", horizontal=True)
-    f1 = footer.box(width="fill", height="fill")
-    f1.text("Griswald Brooks   |   github.com/griswaldbrooks/spanny", "footer")
+    add_footer(slide)
 
 
 @slides.slide(debug_boxes=False)
@@ -79,20 +83,18 @@ std::mdspan<class T, class Extents, class LayoutPolicy, class Accessor>;
 """,
     )
     slide.set_style("footer", elsie.TextStyle(color="black", size=32, align="right"))
-    footer = slide.box(width="fill", height="5%", horizontal=True)
-    f1 = footer.box(width="fill", height="fill")
-    f1.text("Griswald Brooks   |   github.com/griswaldbrooks/spanny", "footer")
+    add_footer(slide)
 
 
 @slides.slide(debug_boxes=False)
 def async_bin_checker(slide):
-    code_slide(
+    cslide = code_slide(
         slide,
         "spanny: bin accessor",
         "C++",
         """
 using bin_view = 
-std::mdspan<class T, class Extents, class LayoutPolicy, bin_checker>;
+std::mdspan<class T, class Extents, class LayoutPolicy, ~#ACCESSOR{bin_checker}>;
 
 struct bin_checker {
   using element_type = bin_state;
@@ -108,20 +110,21 @@ struct bin_checker {
 };
 """,
     )
+    ploc = cslide.inline_box("#ACCESSOR").p("50%", "100%")
+    arrow = elsie.Arrow(20)
+    slide.line([ploc.add(0, -50), ploc.add(0, -100)], stroke_width=10, start_arrow=arrow, color="orange")
     slide.set_style("footer", elsie.TextStyle(color="black", size=32, align="right"))
-    footer = slide.box(width="fill", height="5%", horizontal=True)
-    f1 = footer.box(width="fill", height="fill")
-    f1.text("Griswald Brooks   |   github.com/griswaldbrooks/spanny", "footer")
+    add_footer(slide)
 
 @slides.slide(debug_boxes=False)
 def bounds_checker(slide):
-    code_slide(
+    cslide = code_slide(
         slide,
         "spanny: bin layout",
         "C++",
         """
 using bin_view = 
-std::mdspan<class T, class Extents, bin_layout, bin_checker>;
+std::mdspan<class T, class Extents, ~#LAYOUT{bin_layout}, bin_checker>;
 
 struct bin_layout {
   template <class Extents>
@@ -140,10 +143,11 @@ struct bin_layout {
 };
 """,
     )
+    ploc = cslide.inline_box("#LAYOUT").p("50%", "100%")
+    arrow = elsie.Arrow(20)
+    slide.line([ploc.add(0, -50), ploc.add(0, -100)], stroke_width=10, start_arrow=arrow, color="orange")
     slide.set_style("footer", elsie.TextStyle(color="black", size=32, align="right"))
-    footer = slide.box(width="fill", height="5%", horizontal=True)
-    f1 = footer.box(width="fill", height="fill")
-    f1.text("Griswald Brooks   |   github.com/griswaldbrooks/spanny", "footer")
+    add_footer(slide)
 
 
 @slides.slide(debug_boxes=False)
@@ -173,9 +177,7 @@ while(true) {
 """,
     )
     slide.set_style("footer", elsie.TextStyle(color="black", size=32, align="right"))
-    footer = slide.box(width="fill", height="5%", horizontal=True)
-    f1 = footer.box(width="fill", height="fill")
-    f1.text("Griswald Brooks   |   github.com/griswaldbrooks/spanny", "footer")
+    add_footer(slide)
 
 
 @slides.slide(debug_boxes=False)
@@ -186,25 +188,13 @@ def demo_time(slide):
     )
     
     slide.set_style("footer", elsie.TextStyle(color="black", size=32, align="right"))
-    footer = slide.box(width="fill", height="5%", horizontal=True)
-    f1 = footer.box(width="fill", height="fill")
-    f1.text("Griswald Brooks   |   github.com/griswaldbrooks/spanny", "footer")
+    add_footer(slide)
     
 @slides.slide(debug_boxes=False)
 def thank_you(slide):
-    content = logo_header_slide(slide, "")
-    content.fbox().text(
-        "Thank you!\n",
-        elsie.TextStyle(align="middle", size=80, bold=True),
-    )
-    content.fbox().text(
-        "Special Thanks to\nDaisy Hollman and Tyler Weaver\n~link{github.com/griswaldbrooks/spanny}\n",
-        elsie.TextStyle(align="middle"),
-    )
-    content.sbox(p_bottom=20).text(
-        "Slides generated using Elsie\n",
-        elsie.TextStyle(align="right", size=32),
-    )
+    logo_header_slide(slide, "Thanks")
+    slide.overlay().image("roscon2023/qr.png", scale=2.0)
+    add_footer(slide)
 
 
 slides.render("roscon2023-lightning.pdf")
